@@ -346,7 +346,6 @@ html[data-theme="celestial"] .ambient::after {
   color: var(--text-3);
 }
 
-/* Info panel — clickable fallback on desktop */
 .info-panel {
   position:fixed;
   left:50%; transform: translateX(-50%);
@@ -507,34 +506,56 @@ html[data-theme="celestial"] .ambient::after {
 }
 .copyright span { color: var(--text-2); }
 
+/* Hand preview — now shows the live camera feed with the skeleton overlaid */
 .hand-preview {
   position:fixed; right:30px;
   bottom: calc(110px + env(safe-area-inset-bottom,0px));
-  width:180px; height:130px;
+  width:220px; height:165px;
   border: var(--bw) solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   overflow:hidden;
   opacity:0; pointer-events:none;
   z-index:200;
   transition: opacity var(--dur) var(--ease);
   display:none;
 }
-.hand-preview.on { display:block; opacity:.9; }
-#handCanvas { width:100%; height:100%; display:block; }
+.hand-preview.on { display:block; opacity:.95; }
+
+#camPreview {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  opacity: 0.35;
+}
+
+#handCanvas {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  display:block;
+  background: transparent;
+}
+
 .hand-label {
   position:absolute; left:10px; bottom:7px;
   font-family: var(--font-mono);
   font-size:7.5px; letter-spacing:.22em; text-transform:uppercase;
-  color: var(--text-3);
+  color: var(--text-2);
+  z-index: 3;
+  background: rgba(0,0,0,.35);
+  padding: 2px 6px;
+  border-radius: 3px;
 }
 .hand-count {
   position:absolute; right:10px; bottom:7px;
   font-family: var(--font-mono);
   font-size:7.5px; letter-spacing:.22em; text-transform:uppercase;
   color: var(--accent);
+  z-index: 3;
+  background: rgba(0,0,0,.35);
+  padding: 2px 6px;
+  border-radius: 3px;
 }
 
 .demo-badge {
@@ -592,7 +613,7 @@ html[data-theme="celestial"] .ambient::after {
   .guide-inner { gap:16px; padding:9px 18px; }
   .guide-icon { width:20px; height:20px; }
   .copyright { left:16px; bottom:14px; font-size:7px; }
-  .hand-preview { width:110px; height:80px; right:14px; }
+  .hand-preview { width:140px; height:105px; right:14px; }
   .center-circle { width:70px; height:70px; }
   .center-text { font-size:16px; }
   .center-label { font-size:6px; }
@@ -681,13 +702,14 @@ html[data-theme="celestial"] .ambient::after {
 
 <footer class="guide">
   <div class="guide-inner">
-    <div class="guide-item" data-g="THUMB_UP" id="guideThumb">
+    <div class="guide-item" data-g="FOUR" id="guideThumb">
       <svg class="guide-icon" viewBox="0 0 24 24">
-        <path d="M7 22V10l5-8a2 2 0 0 1 2 2v6h5a2 2 0 0 1 2 2l-2 9a2 2 0 0 1-2 1H7z"/>
-        <line x1="7" y1="22" x2="3" y2="22"/>
-        <line x1="3" y1="10" x2="7" y2="10"/>
+        <path d="M8 11V4a1.5 1.5 0 0 1 3 0v6"/>
+        <path d="M11 10V3a1.5 1.5 0 0 1 3 0v7"/>
+        <path d="M14 10V4a1.5 1.5 0 0 1 3 0v8"/>
+        <path d="M17 10V6a1.5 1.5 0 0 1 3 0v11a4 4 0 0 1-4 4h-3a7 7 0 0 1-7-7v-2"/>
       </svg>
-      <span>open</span>
+      <span>4 fingers — open</span>
     </div>
     <div class="guide-item" data-g="VICTORY" id="guideVictory">
       <svg class="guide-icon" viewBox="0 0 24 24">
@@ -702,7 +724,8 @@ html[data-theme="celestial"] .ambient::after {
 <div class="copyright">Copyright : <span>mohamed005cheikh@gmail.com</span> | by MC88</div>
 
 <div class="hand-preview" id="handPreview" aria-hidden="true">
-  <canvas id="handCanvas" width="360" height="260"></canvas>
+  <video id="camPreview" autoplay playsinline muted></video>
+  <canvas id="handCanvas" width="440" height="330"></canvas>
   <div class="hand-label" id="handLabelPreview">Waiting</div>
   <div class="hand-count" id="handCount">0 fingers</div>
 </div>
@@ -765,7 +788,7 @@ const REPOSITORIES = [
   { name:'Fail88',               url:'https://MC-MC88.github.io/Fail88/',                 tag:'Lab',        description:'Three attempts at making a phone quiet again.' }
 ];
 
-// 12 planet colors
+// Planet colors
 const PALETTE = [
   { light:'#ffb878', mid:'#e0651f', dark:'#3a0f00' },
   { light:'#ffe8c0', mid:'#c89660', dark:'#3a2410' },
@@ -791,7 +814,7 @@ function planetStyle(i) {
   };
 }
 
-// Web Audio
+// Sound effects
 class Audio {
   constructor() { this.ctx = null; this.master = 0.14; }
   init() { if (this.ctx) return; try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
@@ -830,6 +853,7 @@ const handLabelPrev = document.getElementById('handLabelPreview');
 const handCount = document.getElementById('handCount');
 const handCanvas = document.getElementById('handCanvas');
 const handCtx = handCanvas.getContext('2d');
+const camPreview = document.getElementById('camPreview');
 const toastEl = document.getElementById('toast');
 const rTotal = document.getElementById('rTotal');
 const rIndex = document.getElementById('rIndex');
@@ -974,7 +998,6 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-// Open a URL using an anchor click — bypasses most popup blockers
 function openUrl(url) {
   try {
     const a = document.createElement('a');
@@ -1002,12 +1025,10 @@ function openFront() {
   audio.open();
   showToast('Opening · ' + name);
 
-  // Visual feedback
   const body = slot.querySelector('.planet-body');
   body.style.transform = 'scale(1.2)';
   setTimeout(() => { body.style.transform = ''; }, 380);
 
-  // Open immediately (synchronous) — most reliable
   openUrl(url);
 }
 
@@ -1032,26 +1053,24 @@ const HAND_CONN = [
 function drawSkeleton(hand) {
   const w = handCanvas.width, h = handCanvas.height;
   const style = getComputedStyle(document.documentElement);
-  const bg = style.getPropertyValue('--surface').trim();
   const accent = style.getPropertyValue('--accent').trim();
   const dim = style.getPropertyValue('--text-3').trim();
 
-  handCtx.fillStyle = bg;
-  handCtx.fillRect(0, 0, w, h);
+  handCtx.clearRect(0, 0, w, h);
 
   if (!hand) {
     handCtx.fillStyle = dim;
-    handCtx.font = '600 12px monospace';
+    handCtx.font = 'bold 20px monospace';
     handCtx.textAlign = 'center';
-    handCtx.fillText('NO HAND', w/2, h/2 + 4);
+    handCtx.fillText('NO HAND', w/2, h/2 + 6);
     return;
   }
 
   const pts = hand.map(p => ({ x: (1 - p.x) * w, y: p.y * h }));
 
   handCtx.strokeStyle = accent;
-  handCtx.globalAlpha = 0.7;
-  handCtx.lineWidth = 2.5;
+  handCtx.globalAlpha = 0.85;
+  handCtx.lineWidth = 4;
   handCtx.lineCap = 'round';
   handCtx.lineJoin = 'round';
   HAND_CONN.forEach(([a,b]) => {
@@ -1065,34 +1084,31 @@ function drawSkeleton(hand) {
   pts.forEach((p, i) => {
     handCtx.fillStyle = (i === 4 || i === 8) ? accent : dim;
     handCtx.beginPath();
-    handCtx.arc(p.x, p.y, (i === 4 || i === 8) ? 5 : 3, 0, Math.PI * 2);
+    handCtx.arc(p.x, p.y, (i === 4 || i === 8) ? 7 : 4, 0, Math.PI * 2);
     handCtx.fill();
   });
 }
 
-// Finger detection — relaxed threshold for desktop reliability
 function isFingerExtended(hand, tip, pip) {
   const w = hand[0];
   const tipDist = Math.hypot(hand[tip].x - w.x, hand[tip].y - w.y);
   const pipDist = Math.hypot(hand[pip].x - w.x, hand[pip].y - w.y);
-  return tipDist > pipDist * 1.08;
+  return tipDist > pipDist * 1.1;
 }
 
 function countExtended(hand) {
   return [8,12,16,20].map((t, i) => isFingerExtended(hand, t, [6,10,14,18][i])).filter(Boolean).length;
 }
 
-function isThumbsUp(hand) {
-  if (countExtended(hand) !== 0) return false;
-  const tt = hand[4], ti = hand[3], tm = hand[2], w = hand[0];
-  // Thumb tip above IP, IP above MCP, tip above wrist
-  const up = tt.y < ti.y && ti.y < tm.y && tt.y < w.y - 0.02;
-  // Vertical orientation (relaxed)
-  const dx = tt.x - tm.x, dy = tt.y - tm.y;
-  const vertical = Math.abs(dy) > Math.abs(dx) * 0.9;
-  return up && vertical;
+// Four fingers up (index, middle, ring, pinky) — thumb ignored
+function isFourFingers(hand) {
+  return isFingerExtended(hand, 8, 6) &&
+         isFingerExtended(hand, 12, 10) &&
+         isFingerExtended(hand, 16, 14) &&
+         isFingerExtended(hand, 20, 18);
 }
 
+// Victory — two fingers
 function isVictory(hand) {
   const idx = isFingerExtended(hand, 8, 6);
   const mid = isFingerExtended(hand, 12, 10);
@@ -1101,13 +1117,12 @@ function isVictory(hand) {
   return idx && mid && !rng && !pnk;
 }
 
-// Gesture state with stability counters
-let thumbUpConsecutive = 0;
-let thumbUpActive = false;
-let thumbUpStart = 0;
-const THUMB_CONSECUTIVE = 3;
-const THUMB_HOLD_MS = 700;
-let lastThumbFired = 0;
+let fourConsecutive = 0;
+let fourActive = false;
+let fourStart = 0;
+const FOUR_CONSECUTIVE = 3;
+const FOUR_HOLD_MS = 600;
+let lastFourFired = 0;
 
 let victoryConsecutive = 0;
 let victoryActive = false;
@@ -1118,26 +1133,26 @@ let lastVictoryFired = 0;
 
 function processHand(hand) {
   const fingers = countExtended(hand);
-  const thumbUp = isThumbsUp(hand);
+  const four = isFourFingers(hand);
   const victory = isVictory(hand);
 
   handCount.textContent = fingers + ' finger' + (fingers === 1 ? '' : 's');
 
-  // --- Thumbs up ---
-  if (thumbUp) {
-    thumbUpConsecutive++;
-    if (thumbUpConsecutive >= THUMB_CONSECUTIVE) {
-      if (!thumbUpActive) { thumbUpActive = true; thumbUpStart = performance.now(); }
-      const held = performance.now() - thumbUpStart;
-      const p = Math.min(held / THUMB_HOLD_MS, 1);
+  // Four fingers — open the front planet
+  if (four) {
+    fourConsecutive++;
+    if (fourConsecutive >= FOUR_CONSECUTIVE) {
+      if (!fourActive) { fourActive = true; fourStart = performance.now(); }
+      const held = performance.now() - fourStart;
+      const p = Math.min(held / FOUR_HOLD_MS, 1);
       pauseRing.classList.add('active');
       pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC * (1 - p)));
       document.querySelectorAll('.guide-item').forEach(el =>
-        el.classList.toggle('active', el.dataset.g === 'THUMB_UP'));
-      if (p >= 1 && performance.now() - lastThumbFired > 1200) {
-        lastThumbFired = performance.now();
-        thumbUpActive = false;
-        thumbUpConsecutive = 0;
+        el.classList.toggle('active', el.dataset.g === 'FOUR'));
+      if (p >= 1 && performance.now() - lastFourFired > 1200) {
+        lastFourFired = performance.now();
+        fourActive = false;
+        fourConsecutive = 0;
         pauseRing.classList.remove('active');
         pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC));
         openFront();
@@ -1145,15 +1160,15 @@ function processHand(hand) {
       return;
     }
   } else {
-    thumbUpConsecutive = 0;
-    thumbUpActive = false;
+    fourConsecutive = 0;
+    fourActive = false;
     if (!paused) {
       pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC));
       pauseRing.classList.remove('active');
     }
   }
 
-  // --- Victory ---
+  // Victory — full tour
   if (victory) {
     victoryConsecutive++;
     if (victoryConsecutive >= VICTORY_CONSECUTIVE) {
@@ -1212,14 +1227,18 @@ async function startHand() {
       },
       runningMode: 'VIDEO',
       numHands: 1,
-      minHandDetectionConfidence: 0.4,
-      minHandPresenceConfidence: 0.4,
-      minTrackingConfidence: 0.4
+      minHandDetectionConfidence: 0.3,
+      minHandPresenceConfidence: 0.3,
+      minTrackingConfidence: 0.3
     });
 
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
     camVideo.srcObject = stream;
+    camPreview.srcObject = stream;
     await camVideo.play();
+    await camPreview.play();
 
     handReady = true;
     handEnabled = true;
@@ -1246,9 +1265,9 @@ function stopHand() {
   handPreview.classList.remove('on');
   handBtn.classList.remove('on');
   handLabel.textContent = 'Hand off';
-  thumbUpActive = false;
+  fourActive = false;
   victoryActive = false;
-  thumbUpConsecutive = 0;
+  fourConsecutive = 0;
   victoryConsecutive = 0;
   if (!paused) {
     pauseRing.classList.remove('active');
@@ -1280,9 +1299,9 @@ function runHandLoop() {
     handLabelPrev.textContent = 'Tracking';
   } else {
     drawSkeleton(null);
-    thumbUpActive = false;
+    fourActive = false;
     victoryActive = false;
-    thumbUpConsecutive = 0;
+    fourConsecutive = 0;
     victoryConsecutive = 0;
     handLabelPrev.textContent = 'No hand';
     handCount.textContent = '0 fingers';
@@ -1330,14 +1349,10 @@ handBtn.addEventListener('click', () => {
   else startHand();
 });
 
-// Clickable info panel — fallback to open the front planet
 infoPanel.addEventListener('click', () => openFront());
-
-// Clickable guide items — clicking a gesture icon triggers its action
 document.getElementById('guideThumb').addEventListener('click', () => openFront());
 document.getElementById('guideVictory').addEventListener('click', () => startTour());
 
-// Keyboard fallback
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
