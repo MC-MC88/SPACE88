@@ -506,7 +506,6 @@ html[data-theme="celestial"] .ambient::after {
 }
 .copyright span { color: var(--text-2); }
 
-/* Hand preview — now shows the live camera feed with the skeleton overlaid */
 .hand-preview {
   position:fixed; right:30px;
   bottom: calc(110px + env(safe-area-inset-bottom,0px));
@@ -702,19 +701,21 @@ html[data-theme="celestial"] .ambient::after {
 
 <footer class="guide">
   <div class="guide-inner">
-    <div class="guide-item" data-g="FOUR" id="guideThumb">
+    <div class="guide-item" data-g="FOUR" id="guideFour">
       <svg class="guide-icon" viewBox="0 0 24 24">
-        <path d="M8 11V4a1.5 1.5 0 0 1 3 0v6"/>
-        <path d="M11 10V3a1.5 1.5 0 0 1 3 0v7"/>
-        <path d="M14 10V4a1.5 1.5 0 0 1 3 0v8"/>
-        <path d="M17 10V6a1.5 1.5 0 0 1 3 0v11a4 4 0 0 1-4 4h-3a7 7 0 0 1-7-7v-2"/>
+        <path d="M8 4v8"/>
+        <path d="M11 3v9"/>
+        <path d="M14 4v8"/>
+        <path d="M17 5v7"/>
+        <path d="M5 12v2a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6v-2"/>
       </svg>
       <span>4 fingers — open</span>
     </div>
     <div class="guide-item" data-g="VICTORY" id="guideVictory">
       <svg class="guide-icon" viewBox="0 0 24 24">
-        <path d="M9 3v9M15 3v9"/>
-        <path d="M6 14c0 4 2 7 6 7s6-3 6-7"/>
+        <path d="M9 4v9"/>
+        <path d="M15 4v9"/>
+        <path d="M6 13v1a6 6 0 0 0 12 0v-1"/>
       </svg>
       <span>full tour</span>
     </div>
@@ -735,7 +736,6 @@ html[data-theme="celestial"] .ambient::after {
 <video id="cam" autoplay playsinline muted style="display:none"></video>
 
 <script>
-// Repository list with live URLs
 const REPOSITORIES = [
   { name:'MC-MC88',              url:'https://MC-MC88.github.io/',                        tag:'Profile',    description:'The main profile page — a directory of everything published.' },
   { name:'Jetli-MC88',           url:'https://MC-MC88.github.io/Jetli-MC88/',             tag:'Story',      description:'A README that presents itself as a Windows 95 machine.' },
@@ -788,7 +788,6 @@ const REPOSITORIES = [
   { name:'Fail88',               url:'https://MC-MC88.github.io/Fail88/',                 tag:'Lab',        description:'Three attempts at making a phone quiet again.' }
 ];
 
-// Planet colors
 const PALETTE = [
   { light:'#ffb878', mid:'#e0651f', dark:'#3a0f00' },
   { light:'#ffe8c0', mid:'#c89660', dark:'#3a2410' },
@@ -814,7 +813,6 @@ function planetStyle(i) {
   };
 }
 
-// Sound effects
 class Audio {
   constructor() { this.ctx = null; this.master = 0.14; }
   init() { if (this.ctx) return; try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
@@ -873,7 +871,7 @@ const TOTAL = REPOSITORIES.length;
 const STEP = 360 / TOTAL;
 const AUTO_SPEED = 4.0;
 const TOUR_SPEED = 60;
-const PAUSE_MS = 2000;
+const PAUSE_MS = 5000;
 const PAUSE_RING_CIRC = 816.8;
 
 let slots = [];
@@ -886,6 +884,7 @@ let tourEndAngle = 0;
 let currentFrontIndex = 0;
 let radius = 900;
 let planetSize = 100;
+let holdActive = false;
 
 rTotal.textContent = String(TOTAL).padStart(2, '0');
 
@@ -954,10 +953,12 @@ function loop(now) {
     const remaining = pauseUntil - now;
     if (remaining <= 0) {
       paused = false;
-      pauseRing.classList.remove('active');
-      pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC));
+      if (!holdActive) {
+        pauseRing.classList.remove('active');
+        pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC));
+      }
       audio.tick();
-    } else {
+    } else if (!holdActive) {
       const progress = 1 - remaining / PAUSE_MS;
       pauseRing.classList.add('active');
       pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC * (1 - progress)));
@@ -998,6 +999,7 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// Open a link without triggering popup blockers
 function openUrl(url) {
   try {
     const a = document.createElement('a');
@@ -1100,7 +1102,7 @@ function countExtended(hand) {
   return [8,12,16,20].map((t, i) => isFingerExtended(hand, t, [6,10,14,18][i])).filter(Boolean).length;
 }
 
-// Four fingers up (index, middle, ring, pinky) — thumb ignored
+// Four fingers up (thumb ignored) — opens the front planet after holding
 function isFourFingers(hand) {
   return isFingerExtended(hand, 8, 6) &&
          isFingerExtended(hand, 12, 10) &&
@@ -1108,7 +1110,7 @@ function isFourFingers(hand) {
          isFingerExtended(hand, 20, 18);
 }
 
-// Victory — two fingers
+// Victory — two fingers starts a full tour
 function isVictory(hand) {
   const idx = isFingerExtended(hand, 8, 6);
   const mid = isFingerExtended(hand, 12, 10);
@@ -1121,7 +1123,7 @@ let fourConsecutive = 0;
 let fourActive = false;
 let fourStart = 0;
 const FOUR_CONSECUTIVE = 3;
-const FOUR_HOLD_MS = 600;
+const FOUR_HOLD_MS = 2000;
 let lastFourFired = 0;
 
 let victoryConsecutive = 0;
@@ -1138,21 +1140,22 @@ function processHand(hand) {
 
   handCount.textContent = fingers + ' finger' + (fingers === 1 ? '' : 's');
 
-  // Four fingers — open the front planet
   if (four) {
     fourConsecutive++;
     if (fourConsecutive >= FOUR_CONSECUTIVE) {
       if (!fourActive) { fourActive = true; fourStart = performance.now(); }
+      holdActive = true;
       const held = performance.now() - fourStart;
       const p = Math.min(held / FOUR_HOLD_MS, 1);
       pauseRing.classList.add('active');
       pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC * (1 - p)));
       document.querySelectorAll('.guide-item').forEach(el =>
         el.classList.toggle('active', el.dataset.g === 'FOUR'));
-      if (p >= 1 && performance.now() - lastFourFired > 1200) {
+      if (p >= 1 && performance.now() - lastFourFired > 1500) {
         lastFourFired = performance.now();
         fourActive = false;
         fourConsecutive = 0;
+        holdActive = false;
         pauseRing.classList.remove('active');
         pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC));
         openFront();
@@ -1162,13 +1165,13 @@ function processHand(hand) {
   } else {
     fourConsecutive = 0;
     fourActive = false;
+    holdActive = false;
     if (!paused) {
       pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC));
       pauseRing.classList.remove('active');
     }
   }
 
-  // Victory — full tour
   if (victory) {
     victoryConsecutive++;
     if (victoryConsecutive >= VICTORY_CONSECUTIVE) {
@@ -1269,6 +1272,7 @@ function stopHand() {
   victoryActive = false;
   fourConsecutive = 0;
   victoryConsecutive = 0;
+  holdActive = false;
   if (!paused) {
     pauseRing.classList.remove('active');
     pauseRingCircle.setAttribute('stroke-dashoffset', String(PAUSE_RING_CIRC));
@@ -1303,6 +1307,7 @@ function runHandLoop() {
     victoryActive = false;
     fourConsecutive = 0;
     victoryConsecutive = 0;
+    holdActive = false;
     handLabelPrev.textContent = 'No hand';
     handCount.textContent = '0 fingers';
   }
@@ -1350,7 +1355,7 @@ handBtn.addEventListener('click', () => {
 });
 
 infoPanel.addEventListener('click', () => openFront());
-document.getElementById('guideThumb').addEventListener('click', () => openFront());
+document.getElementById('guideFour').addEventListener('click', () => openFront());
 document.getElementById('guideVictory').addEventListener('click', () => startTour());
 
 document.addEventListener('keydown', (e) => {
