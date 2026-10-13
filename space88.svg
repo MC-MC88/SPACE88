@@ -1,0 +1,68 @@
+<svg width="800" height="500" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#131028"/>
+      <stop offset="100%" stop-color="#0a0819"/>
+    </radialGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffe8a0"/>
+      <stop offset="60%" stop-color="#d4a24a"/>
+      <stop offset="100%" stop-color="#5a3a10"/>
+    </radialGradient>
+    <radialGradient id="p1" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffb878"/>
+      <stop offset="50%" stop-color="#e0651f"/>
+      <stop offset="100%" stop-color="#3a0f00"/>
+    </radialGradient>
+    <radialGradient id="p2" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#8cc4ff"/>
+      <stop offset="50%" stop-color="#2a5ec0"/>
+      <stop offset="100%" stop-color="#041230"/>
+    </radialGradient>
+    <radialGradient id="p3" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#b0f0e8"/>
+      <stop offset="50%" stop-color="#28a898"/>
+      <stop offset="100%" stop-color="#002a28"/>
+    </radialGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#bg)"/>
+
+  <g fill="#e8d8b8" opacity="0.5">
+    <circle cx="80" cy="80" r="1.2"/>
+    <circle cx="720" cy="60" r="1"/>
+    <circle cx="150" cy="430" r="1.3"/>
+    <circle cx="650" cy="450" r="1"/>
+    <circle cx="60" cy="250" r="1.1"/>
+    <circle cx="740" cy="270" r="1.2"/>
+    <circle cx="240" cy="50" r="0.9"/>
+    <circle cx="560" cy="470" r="1"/>
+  </g>
+
+  <ellipse cx="400" cy="250" rx="320" ry="200" fill="none" stroke="#d4a24a" stroke-width="0.7" opacity="0.35"/>
+  <ellipse cx="400" cy="250" rx="240" ry="150" fill="none" stroke="#d4a24a" stroke-width="0.6" stroke-dasharray="5 9" opacity="0.4"/>
+  <ellipse cx="400" cy="250" rx="160" ry="100" fill="none" stroke="#d4a24a" stroke-width="0.6" opacity="0.25"/>
+
+  <g filter="url(#g)">
+    <circle cx="400" cy="250" r="46" fill="url(#sun)"/>
+    <circle cx="400" cy="250" r="46" fill="none" stroke="#d4a24a" stroke-width="1.4" opacity="0.9"/>
+    <circle cx="400" cy="250" r="58" fill="none" stroke="#d4a24a" stroke-width="0.6" stroke-dasharray="3 7" opacity="0.55">
+      <animateTransform attributeName="transform" type="rotate" from="0 400 250" to="360 400 250" dur="20s" repeatCount="indefinite"/>
+    </circle>
+    <text x="400" y="256" text-anchor="middle" font-family="Georgia, serif" font-size="18" font-weight="700" fill="#1a0f00">MC88</text>
+  </g>
+
+  <g>
+    <animateTransform attributeName="transform" type="rotate" from="0 400 250" to="360 400 250" dur="30s" repeatCount="indefinite"/>
+    <circle cx="400" cy="50" r="16" fill="url(#p1)" filter="url(#g)"/>
+    <circle cx="720" cy="250" r="13" fill="url(#p2)" filter="url(#g)"/>
+    <ellipse cx="720" cy="250" rx="22" ry="4" fill="none" stroke="#8cc4ff" stroke-width="1" opacity="0.55"/>
+    <circle cx="400" cy="450" r="14" fill="url(#p3)" filter="url(#g)"/>
+    <circle cx="80" cy="250" r="11" fill="url(#p1)" filter="url(#g)"/>
+    <circle cx="580" cy="120" r="9" fill="url(#p2)" filter="url(#g)"/>
+    <circle cx="220" cy="380" r="8" fill="url(#p3)" filter="url(#g)"/>
+    <circle cx="600" cy="380" r="10" fill="url(#p1)" filter="url(#g)"/>
+    <circle cx="200" cy="130" r="7" fill="url(#p2)" filter="url(#g)"/>
+  </g>
+</svg>
