@@ -18,7 +18,7 @@
 
 <br>
 
-<img src="qr[1].jpg" alt="MC88 QR code" width="140">
+<img src="qr.png" alt="MC88 QR code" width="140">
 
 <br>
 
